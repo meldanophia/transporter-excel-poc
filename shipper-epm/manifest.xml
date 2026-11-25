@@ -5,18 +5,18 @@
  xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
  xsi:type="TaskPaneApp">
   <Id>7342654a-333b-4af0-8ef9-aeb8d55adbd2</Id>
-  <Version>1.0.0.0</Version>
+  <Version>1.0.0.1</Version>
   <ProviderName>Mostrans</ProviderName>
   <DefaultLocale>id-ID</DefaultLocale>
   <DisplayName DefaultValue="Mostrans Price Tools Inactive Harga Shipper EPM"/>
   <Description DefaultValue="Validasi dan inaktivasi harga Shipper EPM melalui sistem Mostrans."/>
-  <IconUrl DefaultValue="https://mostrans.co.id/macro-excel/assets/icon32.png"/>
-  <HighResolutionIconUrl DefaultValue="https://mostrans.co.id/macro-excel/assets/icon80.png"/>
-  <SupportUrl DefaultValue="https://mostrans.co.id/macro-excel/shipper-epm/index.html"/>
-  <AppDomains><AppDomain>https://mostrans.co.id</AppDomain></AppDomains>
+  <IconUrl DefaultValue="https://meldanophia.github.io/transporter-excel-poc/assets/icon32.png"/>
+  <HighResolutionIconUrl DefaultValue="https://meldanophia.github.io/transporter-excel-poc/assets/icon80.png"/>
+  <SupportUrl DefaultValue="https://meldanophia.github.io/transporter-excel-poc/shipper-epm/index.html"/>
+  <AppDomains><AppDomain>https://meldanophia.github.io</AppDomain><AppDomain>https://adjustments-understood-sugar-messages.trycloudflare.com</AppDomain></AppDomains>
   <Hosts><Host Name="Workbook"/></Hosts>
   <Requirements><Sets DefaultMinVersion="1.4"><Set Name="ExcelApi" MinVersion="1.4"/></Sets></Requirements>
-  <DefaultSettings><SourceLocation DefaultValue="https://mostrans.co.id/macro-excel/shipper-epm/index.html"/></DefaultSettings>
+  <DefaultSettings><SourceLocation DefaultValue="https://meldanophia.github.io/transporter-excel-poc/shipper-epm/index.html"/></DefaultSettings>
   <Permissions>ReadWriteDocument</Permissions>
   <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
     <Hosts><Host xsi:type="Workbook">
@@ -39,10 +39,10 @@
       </DesktopFormFactor>
     </Host></Hosts>
     <Resources>
-      <bt:Images><bt:Image id="Res.Icon16" DefaultValue="https://mostrans.co.id/macro-excel/assets/icon16.png"/>
-        <bt:Image id="Res.Icon32" DefaultValue="https://mostrans.co.id/macro-excel/assets/icon32.png"/>
-        <bt:Image id="Res.Icon80" DefaultValue="https://mostrans.co.id/macro-excel/assets/icon80.png"/></bt:Images>
-      <bt:Urls><bt:Url id="Res.Taskpane.Url" DefaultValue="https://mostrans.co.id/macro-excel/shipper-epm/index.html"/></bt:Urls>
+      <bt:Images><bt:Image id="Res.Icon16" DefaultValue="https://meldanophia.github.io/transporter-excel-poc/assets/icon16.png"/>
+        <bt:Image id="Res.Icon32" DefaultValue="https://meldanophia.github.io/transporter-excel-poc/assets/icon32.png"/>
+        <bt:Image id="Res.Icon80" DefaultValue="https://meldanophia.github.io/transporter-excel-poc/assets/icon80.png"/></bt:Images>
+      <bt:Urls><bt:Url id="Res.Taskpane.Url" DefaultValue="https://meldanophia.github.io/transporter-excel-poc/shipper-epm/index.html"/></bt:Urls>
       <bt:ShortStrings><bt:String id="Res.Group.Label" DefaultValue="Mostrans Tools"/>
         <bt:String id="Res.Button.Label" DefaultValue="Mostrans Price Tools Inactive Harga Shipper EPM"/>
         <bt:String id="Res.GetStarted.Title" DefaultValue="Mostrans Price Tools Inactive Harga Shipper EPM"/></bt:ShortStrings>
