@@ -13,7 +13,7 @@
   <IconUrl DefaultValue="https://meldanophia.github.io/transporter-excel-poc/assets/icon32.png"/>
   <HighResolutionIconUrl DefaultValue="https://meldanophia.github.io/transporter-excel-poc/assets/icon80.png"/>
   <SupportUrl DefaultValue="https://meldanophia.github.io/transporter-excel-poc/shipper-epm/index.html"/>
-  <AppDomains><AppDomain>https://meldanophia.github.io</AppDomain><AppDomain>https://adjustments-understood-sugar-messages.trycloudflare.com</AppDomain></AppDomains>
+  <AppDomains><AppDomain>https://meldanophia.github.io</AppDomain><AppDomain>https://hence-collaboration-com-incoming.trycloudflare.com</AppDomain></AppDomains>
   <Hosts><Host Name="Workbook"/></Hosts>
   <Requirements><Sets DefaultMinVersion="1.4"><Set Name="ExcelApi" MinVersion="1.4"/></Sets></Requirements>
   <DefaultSettings><SourceLocation DefaultValue="https://meldanophia.github.io/transporter-excel-poc/shipper-epm/index.html"/></DefaultSettings>

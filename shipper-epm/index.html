@@ -1,58 +1,253 @@
 <!doctype html>
-<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Mostrans Price Tools — Shipper EPM</title>
-<script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script><script src="../libs/xlsx.full.min.js"></script>
-<style>
-*{box-sizing:border-box}body{margin:0;background:#f4f7f6;color:#18342d;font:13px/1.5 'Segoe UI',Arial,sans-serif}header{background:white;border-bottom:1px solid #dce8e2;padding:17px;position:sticky;top:0;z-index:2}header b{font-size:16px}header small{display:block;color:#62766c}main{padding:12px;max-width:600px;margin:auto}section,details{background:white;border:1px solid #dce8e2;border-radius:12px;padding:14px;margin-bottom:12px}h2{font-size:15px;margin:0 0 8px}p{margin:8px 0;color:#52675e}button{font:inherit;font-weight:700;background:#086a46;color:white;border:0;border-radius:8px;padding:11px;width:100%;margin-top:8px;cursor:pointer}button:disabled{background:#d6e3dc;color:#637c70;cursor:not-allowed}button.secondary{background:#e5f2ea;color:#145b3d}button.secondary:disabled{opacity:.5}input{width:100%;padding:8px;border:1px solid #ccdcd3;border-radius:6px;font:inherit}progress{width:100%;accent-color:#086a46}#status{white-space:pre-wrap;overflow-wrap:anywhere;padding:10px;background:#eaf4ee;border-radius:8px}#status.error{background:#fff0ed;color:#9b3026}.warn{background:#fff4df;padding:9px;border-radius:7px;color:#74521e}#log{white-space:pre-wrap;overflow-wrap:anywhere;font-size:11px;max-height:180px;overflow:auto}#job{overflow-wrap:anywhere;font-size:11px}.stats{display:flex;gap:8px}.stats>div{flex:1;background:#f1f6f3;border-radius:7px;padding:8px;text-align:center}.stats b{display:block;font-size:19px}[hidden]{display:none!important}
-</style></head><body><header><b>Mostrans Price Tools</b><small>Inactive Harga Shipper EPM</small><small id="connection">Menghubungkan…</small></header><main>
-<section id="setup" hidden><h2>Workbook setup (admin)</h2><p>Gunakan UUID unik yang telah ditetapkan untuk workbook ini. Lakukan sekali, tanpa coauthor lain. Jangan gunakan ID workbook lain atau menyalin metadata ke workbook baru.</p><input id="wid" placeholder="UUID workbook"><button id="provision">Simpan workbook ID</button></section>
-<section><h2>01 · Validate &amp; Preview</h2><p>Validasi A–K terhadap master Excel. Tidak memeriksa target harga PostgreSQL. Kesalahan lokal ditulis ke L.</p><button id="preview" disabled>Validate &amp; Preview</button><div class="stats" id="stats" hidden><div><b id="total">0</b>Total</div><div><b id="ready">0</b>READY</div><div><b id="invalid">0</b>Invalid</div></div><p id="version"></p></section>
-<section><h2>02 · Confirm &amp; Execute</h2><p class="warn">Harga yang berhasil di-commit tidak bisa dibatalkan dari add-in. Jangan edit, sort, filter, atau coauthor worksheet selama job dan sync berlangsung.</p><label><input type="checkbox" id="confirm" style="width:auto"> Saya telah memeriksa data dan siap inaktivasi.</label><button id="execute" disabled>Confirm &amp; Execute</button><progress id="progress" max="100" value="0"></progress><p id="counts">Belum ada job.</p><p id="status" role="status">Menunggu Excel.</p></section>
-<details open><summary>Recovery &amp; bantuan teknis</summary><p>Resume job tersimpan, termasuk batch dan sinkronisasi Excel. Jika snapshot berbeda, proses dihentikan tanpa ACK.</p><button class="secondary" id="resume" disabled>Resume Job &amp; Excel Sync</button><p id="job">Job ID: —</p><pre id="log"></pre></details></main>
-<script>
-'use strict';
-const $=id=>document.getElementById(id), META='_MOSTRANS_META_EPM', MAX=10000;
-const HEAD=['no SK','Transporter','Asal Kota','Tujuan Kota','Jenis Kendaraan','Tipe Muatan','Tipe Harga','Start Date','Price','TKBM','Valid Date','Error Message'];
-const local=['localhost','127.0.0.1'].includes(location.hostname);
-// HTTPS localhost requires a reverse proxy for this path; ordinary HTTP is only for standalone dev.
-const API=local?(location.protocol==='https:'?location.origin+'/run-service-harga-epm':'http://localhost:6076/run-service-harga-epm'):'https://adjustments-understood-sugar-messages.trycloudflare.com/run-service-harga-epm';
-const masterURL=new URL('../master-data/',location.href);
-let meta=null,preview=null,office=false,busy=false,health=null;
-const uuid=()=>crypto.randomUUID(); async function hashText(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return Array.from(new Uint8Array(b),x=>x.toString(16).padStart(2,'0')).join('');} const norm=v=>String(v??'').trim().toLowerCase(); const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
-function note(s,bad=false){$('status').textContent=s;$('status').className=bad?'error':'';$('log').textContent=new Date().toLocaleTimeString()+' '+s+'\n'+$('log').textContent.slice(0,6000);}
-function controls(){ $('preview').disabled=busy||!office||!meta||!!meta.stage||!health; $('execute').disabled=busy||!preview||!preview.rows.length||!!meta?.stage||!$('confirm').checked||!health?.execute_enabled; $('resume').disabled=busy||!office||!meta; $('provision').disabled=busy; }
-async function action(fn){if(busy)return;busy=true;controls();try{await fn();}catch(e){note(e.message||String(e),true);}finally{busy=false;controls();}}
-async function api(path,method='GET',data,key){const c=new AbortController(),timer=setTimeout(()=>c.abort(),120000);try{const r=await fetch(API+path,{method,credentials:'include',cache:'no-store',signal:c.signal,headers:{Accept:'application/json',...(data?{'Content-Type':'application/json'}:{}),...(key?{'Idempotency-Key':key}:{})},...(data?{body:JSON.stringify(data)}:{})});let j;try{j=await r.json();}catch{throw Error('HTTP '+r.status+': gateway bukan JSON');}if(!r.ok){const e=Error('HTTP '+r.status+': '+(j.error||'API error'));e.status=r.status;throw e;}return j;}finally{clearTimeout(timer);}}
-async function getMaster(){if(!window.XLSX)throw Error('SheetJS belum tersedia');const get=async url=>{const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw Error('Master HTTP '+r.status);return r;};const v=await (await get(new URL('version.json',masterURL))).json();if(typeof v.version!=='string'||v.filename!=='master_data.xlsx')throw Error('Master version invalid');const b=XLSX.read(await (await get(new URL(v.filename,masterURL))).arrayBuffer(),{type:'array'});const sh=b.Sheets[v.worksheet||'Sheet1'];if(!sh)throw Error('Master worksheet tidak ditemukan');const a=XLSX.utils.sheet_to_json(sh,{header:1,defval:null,raw:true});const maps={transporter:new Map(),kota:new Map(),jenis_kendaraan:new Map(),tipe_harga:new Map()};for(const r of a.slice(1))for(const [k,i] of [['transporter',0],['kota',4],['jenis_kendaraan',7],['tipe_harga',10]]){if(r[i]==null||r[i+1]==null||['','null'].includes(norm(r[i+1])))continue;const id=Number(r[i]);if(!/^\d+$/.test(String(r[i]).trim())||!Number.isSafeInteger(id))throw Error('Master ID invalid: '+k);const n=norm(r[i+1]);if(!maps[k].has(n))maps[k].set(n,new Set());maps[k].get(n).add(id);}if(Object.values(maps).some(m=>!m.size))throw Error('Master kosong');const again=await (await get(new URL('version.json',masterURL))).json();if(again.version!==v.version)throw Error('MASTER_VERSION_MISMATCH');return {version:v.version,maps};}
-function lookup(m,k,v){const s=m[k].get(norm(v));if(!s)throw Error('MASTER_NOT_FOUND: '+k);if(s.size!==1)throw Error('AMBIGUOUS_MASTER_DATA: '+k);return [...s][0];}
-function txt(v,k,max=500){if(typeof v!=='string'||!v.trim()||v.length>max)throw Error(k+': invalid text');return v.trim();}
-function date(v){if(typeof v==='number'){if(!Number.isInteger(v)||v<61||v>2958465)throw Error('Invalid Excel date');v=new Date((v-25569)*86400000).toISOString().slice(0,10);}else v=String(v??'').trim();if(!/^\d{4}-\d{2}-\d{2}$/.test(v)||!Number.isFinite(Date.parse(v))||new Date(v).toISOString().slice(0,10)!==v)throw Error('Invalid date: gunakan YYYY-MM-DD');return v;}
-function money(v,optional=false){if(optional&&String(v??'').trim()==='')return '0';const s=String(v??'').trim();if(!/^\d+(\.\d{1,8})?$/.test(s)||Number(s)>1e18||!Number.isFinite(Number(s))||(typeof v==='number'&&Math.abs(v)>Number.MAX_SAFE_INTEGER))throw Error('Invalid numeric value: gunakan angka tanpa pemisah ribuan');let [a,b='']=s.split('.');a=a.replace(/^0+(?=\d)/,'');b=b.replace(/0+$/,'');return a+(b?'.'+b:'');}
-function parse(v,i,m){const r={row_id:uuid(),sheet_row:i+2,no_sk:txt(v[0],'no_sk'),transporter:txt(v[1],'transporter'),asal_kota:txt(v[2],'asal_kota'),tujuan_kota:txt(v[3],'tujuan_kota'),jenis_kendaraan:txt(v[4],'jenis_kendaraan'),tipe_muatan:txt(v[5],'tipe_muatan',100),tipe_harga:txt(v[6],'tipe_harga'),start_date:date(v[7]),price:money(v[8]),tkbm:money(v[9],true),valid_date:txt(v[10],'valid_date')};const range=r.valid_date.match(/^\[(\d{4}-\d{2}-\d{2}),(\d{4}-\d{2}-\d{2})\)$/);if(!range||date(range[1])>=date(range[2]))throw Error('Invalid valid_date');for(const [n,id,k] of [['transporter','transporter_id','transporter'],['asal_kota','asal_id','kota'],['tujuan_kota','tujuan_id','kota'],['jenis_kendaraan','jenis_kendaraan_id','jenis_kendaraan'],['tipe_harga','tipe_harga_id','tipe_harga']])r[id]=lookup(m,k,r[n]);return r;}
-function matchKey(r){return JSON.stringify([norm(r.no_sk),r.transporter_id,r.asal_id,r.tujuan_id,r.jenis_kendaraan_id,r.tipe_muatan,r.tipe_harga_id,r.start_date,r.price,r.tkbm,r.valid_date]);}
-// Meta A1 is small state JSON; A2 onward stores one immutable snapshot record per cell.
-async function loadMeta(){return Excel.run(async c=>{const s=c.workbook.worksheets.getItemOrNullObject(META);s.load('isNullObject');await c.sync();if(s.isNullObject)return null;const r=s.getRange('A1');r.load('values');await c.sync();const x=JSON.parse(r.values[0][0]);if(!x.workbook_id)throw Error('Metadata workbook invalid');return x;});}
-async function saveMeta(x,records){if(records)x={...x,snapshot_hash:await hashText(JSON.stringify(records))};await Excel.run(async c=>{let s=c.workbook.worksheets.getItemOrNullObject(META);s.load('isNullObject');await c.sync();if(s.isNullObject)s=c.workbook.worksheets.add(META);if(records){for(let i=0;i<records.length;i+=500){const vals=records.slice(i,i+500).map(r=>[JSON.stringify(r)]);if(vals.some(v=>v[0].length>32000))throw Error('Snapshot cell terlalu panjang');s.getRangeByIndexes(i+1,0,vals.length,1).values=vals;await c.sync();}}s.getRange('A1').values=[[JSON.stringify(x)]];s.visibility=Excel.SheetVisibility.hidden;await c.sync();});meta=x;}
-async function records(){const result=await Excel.run(async c=>{const s=c.workbook.worksheets.getItem(META),out=[];for(let i=0;i<meta.count;i+=500){const r=s.getRangeByIndexes(i+1,0,Math.min(500,meta.count-i),1);r.load('values');await c.sync();out.push(...r.values.map(v=>JSON.parse(v[0])));}return out;});if(await hashText(JSON.stringify(result))!==meta.snapshot_hash)throw Error('Snapshot metadata corrupt; jangan execute atau ACK');return result;}
-function trimRows(a){while(a.length&&a[a.length-1].every(v=>v===''||v===null))a.pop();return a;}
-async function readSheet(id){return Excel.run(async c=>{const s=id?c.workbook.worksheets.getItem(id):c.workbook.worksheets.getActiveWorksheet();s.load(['id','name']);const u=s.getUsedRangeOrNullObject(true);u.load(['isNullObject','rowIndex','rowCount','columnIndex','columnCount']);const tables=s.tables;tables.load('items');await c.sync();if(s.name===META||s.name==='_MOSTRANS_META'||u.isNullObject)throw Error('Pilih worksheet input EPM');if(tables.items.length||u.columnIndex+u.columnCount>12)throw Error('Gunakan worksheet khusus A–L tanpa Excel Table atau data tambahan');const last=u.rowIndex+u.rowCount;if(last>MAX+1)throw Error('Maksimum 10.000 row');const data=[];for(let i=0;i<last;i+=500){const r=s.getRangeByIndexes(i,0,Math.min(500,last-i),12);r.load(['values','formulas']);await c.sync();if(r.formulas.some(row=>row.some(v=>typeof v==='string'&&v.startsWith('='))))throw Error('Formula tidak diizinkan pada worksheet input');data.push(...r.values);}if(HEAD.slice(0,11).some((v,i)=>norm(v)!==norm(data[0][i]))||!['',norm(HEAD[11])].includes(norm(data[0][11])))throw Error('Header A–L tidak sesuai template');return {id:s.id,header:data[0],values:trimRows(data.slice(1))};});}
-async function writeErrors(id,values){await Excel.run(async c=>{const s=c.workbook.worksheets.getItem(id);s.getRange('L1').values=[['Error Message']];for(let i=0;i<values.length;i+=500){const a=values.slice(i,i+500).map(v=>[v[11]]);s.getRangeByIndexes(i+1,11,a.length,1).values=a;await c.sync();}await c.sync();});}
-async function lock(){return api('/workbooks/'+encodeURIComponent(meta.workbook_id)+'/lock');}
-async function validate(){preview=null;meta=await loadMeta();if(!meta||meta.stage||(await lock()).locked)throw Error('Workbook terkunci; gunakan Resume');preview=null;$('confirm').checked=false;const master=await getMaster(),sheet=await readSheet();const rec=[],keys=new Map();for(const [i,v] of sheet.values.entries()){let row=null,error='';if(v.slice(0,11).some(x=>String(x??'').trim()!=='')){try{row=parse(v,i,master.maps);const k=matchKey(row);if(!keys.has(k))keys.set(k,[]);keys.get(k).push(i);}catch(e){error=e.message;}}rec.push({v:[...v.slice(0,11),error],row,error});}for(const ids of keys.values())if(ids.length>1)for(const i of ids){rec[i].row=null;rec[i].error=rec[i].v[11]='DUPLICATE_INPUT';}const rows=rec.filter(r=>r.row).map(r=>r.row);const check=await readSheet(sheet.id);if(!same(check.values,sheet.values))throw Error('Worksheet berubah saat validasi');await writeErrors(sheet.id,rec.map(r=>r.v));preview={sheet:sheet.id,version:master.version,rec,rows};$('stats').hidden=false;$('total').textContent=rec.filter(r=>r.row||r.error).length;$('ready').textContent=rows.length;$('invalid').textContent=rec.filter(r=>r.error).length;$('version').textContent='Master '+master.version;note(rows.length+' READY (validasi master saja), '+rec.filter(r=>r.error).length+' invalid.');}
-async function create(){if(!preview||!$('confirm').checked)throw Error('Preview dan konfirmasi diperlukan');meta=await loadMeta();if(!meta||meta.stage||(await lock()).locked)throw Error('Workbook terkunci');const p=preview;const sheet=await readSheet(p.sheet);if(!same(sheet.values,trimRows(p.rec.map(r=>r.v.slice()))))throw Error('Snapshot berubah; preview ulang');if(p.rows.length>health.max_job_rows)throw Error('Jumlah row melebihi limit API');const x={workbook_id:meta.workbook_id,stage:'prepared',sheet:p.sheet,version:p.version,request_key:uuid(),count:p.rec.length,job_id:null};await saveMeta(x,p.rec);preview=null;await runJob();}
-async function findOrCreate(rec){const q=new URLSearchParams({workbook_id:meta.workbook_id,request_key:meta.request_key});let j;try{j=await api('/jobs/by-request-key?'+q);}catch(e){if(e.status!==404)throw e;const sheet=await readSheet(meta.sheet);if(!same(sheet.values,trimRows(rec.map(r=>r.v.slice()))))throw Error('Snapshot berubah sebelum create job');j=await api('/jobs','POST',{workbook_id:meta.workbook_id,master_version:meta.version,confirm:'EXECUTE',rows:rec.filter(r=>r.row).map(r=>r.row)},meta.request_key);}await saveMeta({...meta,job_id:j.job_id,stage:'running'});}
-function progress(j){$('progress').value=j.total_rows?100*j.completed_rows/j.total_rows:0;$('counts').textContent=`${j.completed_rows}/${j.total_rows} · ${j.success_rows} sukses · ${j.failed_rows} gagal · ${j.status}`;$('job').textContent='Job ID: '+j.job_id;}
-async function digest(r){const sorted=Object.fromEntries(Object.keys(r).sort().map(k=>[k,r[k]]));const bytes=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(sorted)));return Array.from(new Uint8Array(bytes),x=>x.toString(16).padStart(2,'0')).join('');}
-async function resultPlan(rec,j){const data=await api('/jobs/'+meta.job_id+'/results');const expected=rec.filter(r=>r.row);if(data.job_id!==meta.job_id||data.results.length!==expected.length||j.total_rows!==expected.length)throw Error('Result count mismatch');const map=new Map(data.results.map(r=>[r.row_id,r]));if(map.size!==expected.length)throw Error('Duplicate result ID');let success=0,failed=0;const plan=[];for(const r of rec){const v=[...r.v];let remove=false;if(r.row){const s=map.get(r.row.row_id);if(!s||s.sheet_row!==r.row.sheet_row||!s.input_data||Object.keys(r.row).some(k=>r.row[k]!==s.input_data[k])||await digest(s.input_data)!==s.input_digest)throw Error('Result snapshot/digest mismatch: '+r.row.sheet_row);if(s.status==='success'&&s.target_id!=null){remove=true;success++;}else if(['failed','skipped','stale'].includes(s.status)&&s.target_id==null){v[11]=String(s.error_message||s.status.toUpperCase());if(/^[=+@-]/.test(v[11]))v[11]='ERROR: '+v[11];failed++;}else throw Error('Unexpected row status: '+s.status);}plan.push({v,remove});}if(success!==j.success_rows||failed!==j.failed_rows)throw Error('Result counter mismatch');return plan;}
-function expectedRows(plan,groups,done){const gone=new Set();for(const g of groups.slice(0,done))for(let i=g.start;i<=g.end;i++)gone.add(i);return trimRows(plan.filter((_,i)=>!gone.has(i)).map(r=>r.v.slice()));}
-function deletionGroups(plan){const g=[];for(let i=plan.length-1;i>=0;){if(!plan[i].remove){i--;continue;}const end=i;while(i>=0&&plan[i].remove)i--;g.push({start:i+1,end});}return g;}
-async function syncJob(rec,j){const plan=await resultPlan(rec,j),groups=deletionGroups(plan);if(!['writing','deleting','ack'].includes(meta.stage)){const current=await readSheet(meta.sheet);if(!same(current.values,trimRows(rec.map(r=>r.v.slice()))))throw Error('Worksheet berubah setelah execute; sync ditahan.');await saveMeta({...meta,stage:'writing',next:0});}
-if(meta.stage==='writing'){const current=await readSheet(meta.sheet),original=trimRows(rec.map(r=>r.v.slice()));if(current.values.length!==original.length||current.values.some((v,i)=>!same(v.slice(0,11),original[i].slice(0,11))||![original[i][11],plan[i].v[11]].includes(v[11])))throw Error('Snapshot berubah saat write-back; sync ditahan');await writeErrors(meta.sheet,plan.map(r=>r.v));const after=await readSheet(meta.sheet);if(!same(after.values,expectedRows(plan,groups,0)))throw Error('Write-back verification failed');await saveMeta({...meta,stage:'deleting',next:0});}
-if(meta.stage==='deleting'){for(let n=meta.next;n<groups.length;n++){const before=expectedRows(plan,groups,n),after=expectedRows(plan,groups,n+1),current=await readSheet(meta.sheet);if(same(current.values,before)){const g=groups[n];await Excel.run(async c=>{const s=c.workbook.worksheets.getItem(meta.sheet);s.getRangeByIndexes(g.start+1,0,g.end-g.start+1,12).delete(Excel.DeleteShiftDirection.up);await c.sync();});if(!same((await readSheet(meta.sheet)).values,after))throw Error('Delete verification failed; jangan ACK');}else if(!same(current.values,after))throw Error('Snapshot berbeda saat recovery delete; jangan ACK');await saveMeta({...meta,next:n+1});note('Excel sync: '+(n+1)+'/'+groups.length+' blok SUCCESS dihapus');}await saveMeta({...meta,stage:'ack'});}
-if(!same((await readSheet(meta.sheet)).values,expectedRows(plan,groups,groups.length)))throw Error('Final snapshot mismatch; jangan ACK');const ack=await api('/jobs/'+meta.job_id+'/sync-ack','POST',{confirmed:true});if(ack.sync_status!=='synced')throw Error('Sync ACK gagal');const l=await lock();if(l.locked)throw Error('Workbook masih locked; periksa job sebelum clear metadata');await saveMeta({workbook_id:meta.workbook_id,stage:null});$('confirm').checked=false;preview=null;note('SELESAI: '+j.success_rows+' sukses dihapus, '+j.failed_rows+' gagal dipertahankan. Workbook unlocked.');}
-async function runJob(){const rec=await records();if(!meta.job_id)await findOrCreate(rec);const base='/jobs/'+meta.job_id;let j=await api(base);progress(j);if(j.status!=='completed'){if(meta.stage!=='running')throw Error('Invalid recovery stage');const current=await readSheet(meta.sheet);if(!same(current.values,trimRows(rec.map(r=>r.v.slice()))))throw Error('Worksheet berubah; execution ditahan. Pulihkan snapshot sebelum resume.');}while(['queued','running'].includes(j.status)){const last=j.completed_rows;j=await api(base+'/execute-batch','POST',{expected_completed_rows:last});progress(j);if(j.status!=='completed'&&j.completed_rows<=last)throw Error('Batch tidak maju; gunakan Resume untuk cek status server');}if(j.status!=='completed')throw Error('Job tidak executable: '+j.status);await syncJob(rec,j);}
-async function resume(){meta=await loadMeta();if(!meta)throw Error('Workbook belum diprovision');if(!meta.stage){const l=await lock();if(l.locked)throw Error('Job locked tanpa snapshot lokal: '+l.job_id+'. Hubungi admin; jangan ACK manual.');note('Tidak ada job pending.');return;}await runJob();}
-async function provision(){if(await loadMeta())throw Error('Workbook sudah diprovision');const id=$('wid').value.trim();if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))throw Error('UUID workbook invalid');const l=await api('/workbooks/'+encodeURIComponent(id)+'/lock');if(l.locked)throw Error('Workbook ID sedang locked');await saveMeta({workbook_id:id,stage:null});$('setup').hidden=true;note('Workbook ID tersimpan.');}
-$('preview').onclick=()=>action(validate);$('execute').onclick=()=>action(create);$('resume').onclick=()=>action(resume);$('provision').onclick=()=>action(provision);$('confirm').onchange=controls;
-async function init(info){office=info?.host===Office.HostType.Excel;if(!office){$('connection').textContent='Standalone browser · Excel diperlukan untuk execute';await action(async()=>{const m=await getMaster();$('version').textContent='Master '+m.version;note('Master berhasil dimuat: '+Object.entries(m.maps).map(([k,v])=>k+' '+v.size).join(', '));});return;}await action(async()=>{if(!Office.context.requirements.isSetSupported('ExcelApi','1.4'))throw Error('ExcelApi 1.4 atau lebih baru diperlukan');meta=await loadMeta();$('setup').hidden=!!meta;health=await api('/health');if(health.job_type!=='INACTIVE_SHIPPER_EPM'||health.status!=='ok'){health=null;throw Error('API bukan Shipper EPM');}$('connection').textContent=health.environment+' · batch '+health.batch_size+' · API connected';if(meta){const l=await lock();note(meta.stage||l.locked?'Job/recovery tersedia. Gunakan Resume.':'Siap untuk preview.');}else note('Admin: provision workbook ID terlebih dahulu.');});}
-if(window.Office)Office.onReady(init);else note('Office.js tidak dapat dimuat',true);
-</script></body></html>
+<html lang="id">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Mostrans Price Tools — Shipper EPM</title>
+    <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+    <script src="../libs/xlsx.full.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            margin: 0;
+            background: #f4f7f6;
+            color: #18342d;
+            font: 13px/1.5 'Segoe UI', Arial, sans-serif
+        }
+
+        header {
+            background: white;
+            border-bottom: 1px solid #dce8e2;
+            padding: 17px;
+            position: sticky;
+            top: 0;
+            z-index: 2
+        }
+
+        header b {
+            font-size: 16px
+        }
+
+        header small {
+            display: block;
+            color: #62766c
+        }
+
+        main {
+            padding: 12px;
+            max-width: 600px;
+            margin: auto
+        }
+
+        section,
+        details {
+            background: white;
+            border: 1px solid #dce8e2;
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 12px
+        }
+
+        h2 {
+            font-size: 15px;
+            margin: 0 0 8px
+        }
+
+        p {
+            margin: 8px 0;
+            color: #52675e
+        }
+
+        button {
+            font: inherit;
+            font-weight: 700;
+            background: #086a46;
+            color: white;
+            border: 0;
+            border-radius: 8px;
+            padding: 11px;
+            width: 100%;
+            margin-top: 8px;
+            cursor: pointer
+        }
+
+        button:disabled {
+            background: #d6e3dc;
+            color: #637c70;
+            cursor: not-allowed
+        }
+
+        button.secondary {
+            background: #e5f2ea;
+            color: #145b3d
+        }
+
+        button.secondary:disabled {
+            opacity: .5
+        }
+
+        input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccdcd3;
+            border-radius: 6px;
+            font: inherit
+        }
+
+        progress {
+            width: 100%;
+            accent-color: #086a46
+        }
+
+        #status {
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            padding: 10px;
+            background: #eaf4ee;
+            border-radius: 8px
+        }
+
+        #status.error {
+            background: #fff0ed;
+            color: #9b3026
+        }
+
+        .warn {
+            background: #fff4df;
+            padding: 9px;
+            border-radius: 7px;
+            color: #74521e
+        }
+
+        #log {
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            font-size: 11px;
+            max-height: 180px;
+            overflow: auto
+        }
+
+        #job {
+            overflow-wrap: anywhere;
+            font-size: 11px
+        }
+
+        .stats {
+            display: flex;
+            gap: 8px
+        }
+
+        .stats>div {
+            flex: 1;
+            background: #f1f6f3;
+            border-radius: 7px;
+            padding: 8px;
+            text-align: center
+        }
+
+        .stats b {
+            display: block;
+            font-size: 19px
+        }
+
+        [hidden] {
+            display: none !important
+        }
+    </style>
+</head>
+
+<body>
+    <header><b>Mostrans Price Tools</b><small>Inactive Harga Shipper EPM</small><small
+            id="connection">Menghubungkan…</small></header>
+    <main>
+        <section id="setup" hidden>
+            <h2>Workbook setup (admin)</h2>
+            <p>Gunakan UUID unik yang telah ditetapkan untuk workbook ini. Lakukan sekali, tanpa coauthor lain. Jangan
+                gunakan ID workbook lain atau menyalin metadata ke workbook baru.</p><input id="wid"
+                placeholder="UUID workbook"><button id="provision">Simpan workbook ID</button>
+        </section>
+        <section>
+            <h2>01 · Validate &amp; Preview</h2>
+            <p>Validasi A–K terhadap master Excel. Tidak memeriksa target harga PostgreSQL. Kesalahan lokal ditulis ke
+                L.</p><button id="preview" disabled>Validate &amp; Preview</button>
+            <div class="stats" id="stats" hidden>
+                <div><b id="total">0</b>Total</div>
+                <div><b id="ready">0</b>READY</div>
+                <div><b id="invalid">0</b>Invalid</div>
+            </div>
+            <p id="version"></p>
+        </section>
+        <section>
+            <h2>02 · Confirm &amp; Execute</h2>
+            <p class="warn">Harga yang berhasil di-commit tidak bisa dibatalkan dari add-in. Jangan edit, sort, filter,
+                atau coauthor worksheet selama job dan sync berlangsung.</p><label><input type="checkbox" id="confirm"
+                    style="width:auto"> Saya telah memeriksa data dan siap inaktivasi.</label><button id="execute"
+                disabled>Confirm &amp; Execute</button><progress id="progress" max="100" value="0"></progress>
+            <p id="counts">Belum ada job.</p>
+            <p id="status" role="status">Menunggu Excel.</p>
+        </section>
+        <details open>
+            <summary>Recovery &amp; bantuan teknis</summary>
+            <p>Resume job tersimpan, termasuk batch dan sinkronisasi Excel. Jika snapshot berbeda, proses dihentikan
+                tanpa ACK.</p><button class="secondary" id="resume" disabled>Resume Job &amp; Excel Sync</button>
+            <p id="job">Job ID: —</p>
+            <pre id="log"></pre>
+        </details>
+    </main>
+    <script>
+        'use strict';
+        const $ = id => document.getElementById(id), META = '_MOSTRANS_META_EPM', MAX = 10000;
+        const HEAD = ['no SK', 'Transporter', 'Asal Kota', 'Tujuan Kota', 'Jenis Kendaraan', 'Tipe Muatan', 'Tipe Harga', 'Start Date', 'Price', 'TKBM', 'Valid Date', 'Error Message'];
+        const local = ['localhost', '127.0.0.1'].includes(location.hostname);
+        // HTTPS localhost requires a reverse proxy for this path; ordinary HTTP is only for standalone dev.
+        const API = local ? (location.protocol === 'https:' ? location.origin + '/run-service-harga-epm' : 'http://localhost:6076/run-service-harga-epm') : 'https://hence-collaboration-com-incoming.trycloudflare.com/run-service-harga-epm';
+        const masterURL = new URL('../master-data/', location.href);
+        let meta = null, preview = null, office = false, busy = false, health = null;
+        const uuid = () => crypto.randomUUID(); async function hashText(s) { const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return Array.from(new Uint8Array(b), x => x.toString(16).padStart(2, '0')).join(''); } const norm = v => String(v ?? '').trim().toLowerCase(); const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+        function note(s, bad = false) { $('status').textContent = s; $('status').className = bad ? 'error' : ''; $('log').textContent = new Date().toLocaleTimeString() + ' ' + s + '\n' + $('log').textContent.slice(0, 6000); }
+        function controls() { $('preview').disabled = busy || !office || !meta || !!meta.stage || !health; $('execute').disabled = busy || !preview || !preview.rows.length || !!meta?.stage || !$('confirm').checked || !health?.execute_enabled; $('resume').disabled = busy || !office || !meta; $('provision').disabled = busy; }
+        async function action(fn) { if (busy) return; busy = true; controls(); try { await fn(); } catch (e) { note(e.message || String(e), true); } finally { busy = false; controls(); } }
+        async function api(path, method = 'GET', data, key) { const c = new AbortController(), timer = setTimeout(() => c.abort(), 120000); try { const r = await fetch(API + path, { method, credentials: 'include', cache: 'no-store', signal: c.signal, headers: { Accept: 'application/json', ...(data ? { 'Content-Type': 'application/json' } : {}), ...(key ? { 'Idempotency-Key': key } : {}) }, ...(data ? { body: JSON.stringify(data) } : {}) }); let j; try { j = await r.json(); } catch { throw Error('HTTP ' + r.status + ': gateway bukan JSON'); } if (!r.ok) { const e = Error('HTTP ' + r.status + ': ' + (j.error || 'API error')); e.status = r.status; throw e; } return j; } finally { clearTimeout(timer); } }
+        async function getMaster() { if (!window.XLSX) throw Error('SheetJS belum tersedia'); const get = async url => { const r = await fetch(url, { cache: 'no-store' }); if (!r.ok) throw Error('Master HTTP ' + r.status); return r; }; const v = await (await get(new URL('version.json', masterURL))).json(); if (typeof v.version !== 'string' || v.filename !== 'master_data.xlsx') throw Error('Master version invalid'); const b = XLSX.read(await (await get(new URL(v.filename, masterURL))).arrayBuffer(), { type: 'array' }); const sh = b.Sheets[v.worksheet || 'Sheet1']; if (!sh) throw Error('Master worksheet tidak ditemukan'); const a = XLSX.utils.sheet_to_json(sh, { header: 1, defval: null, raw: true }); const maps = { transporter: new Map(), kota: new Map(), jenis_kendaraan: new Map(), tipe_harga: new Map() }; for (const r of a.slice(1)) for (const [k, i] of [['transporter', 0], ['kota', 4], ['jenis_kendaraan', 7], ['tipe_harga', 10]]) { if (r[i] == null || r[i + 1] == null || ['', 'null'].includes(norm(r[i + 1]))) continue; const id = Number(r[i]); if (!/^\d+$/.test(String(r[i]).trim()) || !Number.isSafeInteger(id)) throw Error('Master ID invalid: ' + k); const n = norm(r[i + 1]); if (!maps[k].has(n)) maps[k].set(n, new Set()); maps[k].get(n).add(id); } if (Object.values(maps).some(m => !m.size)) throw Error('Master kosong'); const again = await (await get(new URL('version.json', masterURL))).json(); if (again.version !== v.version) throw Error('MASTER_VERSION_MISMATCH'); return { version: v.version, maps }; }
+        function lookup(m, k, v) { const s = m[k].get(norm(v)); if (!s) throw Error('MASTER_NOT_FOUND: ' + k); if (s.size !== 1) throw Error('AMBIGUOUS_MASTER_DATA: ' + k); return [...s][0]; }
+        function txt(v, k, max = 500) { if (typeof v !== 'string' || !v.trim() || v.length > max) throw Error(k + ': invalid text'); return v.trim(); }
+        function date(v) { if (typeof v === 'number') { if (!Number.isInteger(v) || v < 61 || v > 2958465) throw Error('Invalid Excel date'); v = new Date((v - 25569) * 86400000).toISOString().slice(0, 10); } else v = String(v ?? '').trim(); if (!/^\d{4}-\d{2}-\d{2}$/.test(v) || !Number.isFinite(Date.parse(v)) || new Date(v).toISOString().slice(0, 10) !== v) throw Error('Invalid date: gunakan YYYY-MM-DD'); return v; }
+        function money(v, optional = false) { if (optional && String(v ?? '').trim() === '') return '0'; const s = String(v ?? '').trim(); if (!/^\d+(\.\d{1,8})?$/.test(s) || Number(s) > 1e18 || !Number.isFinite(Number(s)) || (typeof v === 'number' && Math.abs(v) > Number.MAX_SAFE_INTEGER)) throw Error('Invalid numeric value: gunakan angka tanpa pemisah ribuan'); let [a, b = ''] = s.split('.'); a = a.replace(/^0+(?=\d)/, ''); b = b.replace(/0+$/, ''); return a + (b ? '.' + b : ''); }
+        function parse(v, i, m) { const r = { row_id: uuid(), sheet_row: i + 2, no_sk: txt(v[0], 'no_sk'), transporter: txt(v[1], 'transporter'), asal_kota: txt(v[2], 'asal_kota'), tujuan_kota: txt(v[3], 'tujuan_kota'), jenis_kendaraan: txt(v[4], 'jenis_kendaraan'), tipe_muatan: txt(v[5], 'tipe_muatan', 100), tipe_harga: txt(v[6], 'tipe_harga'), start_date: date(v[7]), price: money(v[8]), tkbm: money(v[9], true), valid_date: txt(v[10], 'valid_date') }; const range = r.valid_date.match(/^\[(\d{4}-\d{2}-\d{2}),(\d{4}-\d{2}-\d{2})\)$/); if (!range || date(range[1]) >= date(range[2])) throw Error('Invalid valid_date'); for (const [n, id, k] of [['transporter', 'transporter_id', 'transporter'], ['asal_kota', 'asal_id', 'kota'], ['tujuan_kota', 'tujuan_id', 'kota'], ['jenis_kendaraan', 'jenis_kendaraan_id', 'jenis_kendaraan'], ['tipe_harga', 'tipe_harga_id', 'tipe_harga']]) r[id] = lookup(m, k, r[n]); return r; }
+        function matchKey(r) { return JSON.stringify([norm(r.no_sk), r.transporter_id, r.asal_id, r.tujuan_id, r.jenis_kendaraan_id, r.tipe_muatan, r.tipe_harga_id, r.start_date, r.price, r.tkbm, r.valid_date]); }
+        // Meta A1 is small state JSON; A2 onward stores one immutable snapshot record per cell.
+        async function loadMeta() { return Excel.run(async c => { const s = c.workbook.worksheets.getItemOrNullObject(META); s.load('isNullObject'); await c.sync(); if (s.isNullObject) return null; const r = s.getRange('A1'); r.load('values'); await c.sync(); const x = JSON.parse(r.values[0][0]); if (!x.workbook_id) throw Error('Metadata workbook invalid'); return x; }); }
+        async function saveMeta(x, records) { if (records) x = { ...x, snapshot_hash: await hashText(JSON.stringify(records)) }; await Excel.run(async c => { let s = c.workbook.worksheets.getItemOrNullObject(META); s.load('isNullObject'); await c.sync(); if (s.isNullObject) s = c.workbook.worksheets.add(META); if (records) { for (let i = 0; i < records.length; i += 500) { const vals = records.slice(i, i + 500).map(r => [JSON.stringify(r)]); if (vals.some(v => v[0].length > 32000)) throw Error('Snapshot cell terlalu panjang'); s.getRangeByIndexes(i + 1, 0, vals.length, 1).values = vals; await c.sync(); } } s.getRange('A1').values = [[JSON.stringify(x)]]; s.visibility = Excel.SheetVisibility.hidden; await c.sync(); }); meta = x; }
+        async function records() { const result = await Excel.run(async c => { const s = c.workbook.worksheets.getItem(META), out = []; for (let i = 0; i < meta.count; i += 500) { const r = s.getRangeByIndexes(i + 1, 0, Math.min(500, meta.count - i), 1); r.load('values'); await c.sync(); out.push(...r.values.map(v => JSON.parse(v[0]))); } return out; }); if (await hashText(JSON.stringify(result)) !== meta.snapshot_hash) throw Error('Snapshot metadata corrupt; jangan execute atau ACK'); return result; }
+        function trimRows(a) { while (a.length && a[a.length - 1].every(v => v === '' || v === null)) a.pop(); return a; }
+        async function readSheet(id) { return Excel.run(async c => { const s = id ? c.workbook.worksheets.getItem(id) : c.workbook.worksheets.getActiveWorksheet(); s.load(['id', 'name']); const u = s.getUsedRangeOrNullObject(true); u.load(['isNullObject', 'rowIndex', 'rowCount', 'columnIndex', 'columnCount']); const tables = s.tables; tables.load('items'); await c.sync(); if (s.name === META || s.name === '_MOSTRANS_META' || u.isNullObject) throw Error('Pilih worksheet input EPM'); if (tables.items.length || u.columnIndex + u.columnCount > 12) throw Error('Gunakan worksheet khusus A–L tanpa Excel Table atau data tambahan'); const last = u.rowIndex + u.rowCount; if (last > MAX + 1) throw Error('Maksimum 10.000 row'); const data = []; for (let i = 0; i < last; i += 500) { const r = s.getRangeByIndexes(i, 0, Math.min(500, last - i), 12); r.load(['values', 'formulas']); await c.sync(); if (r.formulas.some(row => row.some(v => typeof v === 'string' && v.startsWith('=')))) throw Error('Formula tidak diizinkan pada worksheet input'); data.push(...r.values); } if (HEAD.slice(0, 11).some((v, i) => norm(v) !== norm(data[0][i])) || !['', norm(HEAD[11])].includes(norm(data[0][11]))) throw Error('Header A–L tidak sesuai template'); return { id: s.id, header: data[0], values: trimRows(data.slice(1)) }; }); }
+        async function writeErrors(id, values) { await Excel.run(async c => { const s = c.workbook.worksheets.getItem(id); s.getRange('L1').values = [['Error Message']]; for (let i = 0; i < values.length; i += 500) { const a = values.slice(i, i + 500).map(v => [v[11]]); s.getRangeByIndexes(i + 1, 11, a.length, 1).values = a; await c.sync(); } await c.sync(); }); }
+        async function lock() { return api('/workbooks/' + encodeURIComponent(meta.workbook_id) + '/lock'); }
+        async function validate() { preview = null; meta = await loadMeta(); if (!meta || meta.stage || (await lock()).locked) throw Error('Workbook terkunci; gunakan Resume'); preview = null; $('confirm').checked = false; const master = await getMaster(), sheet = await readSheet(); const rec = [], keys = new Map(); for (const [i, v] of sheet.values.entries()) { let row = null, error = ''; if (v.slice(0, 11).some(x => String(x ?? '').trim() !== '')) { try { row = parse(v, i, master.maps); const k = matchKey(row); if (!keys.has(k)) keys.set(k, []); keys.get(k).push(i); } catch (e) { error = e.message; } } rec.push({ v: [...v.slice(0, 11), error], row, error }); } for (const ids of keys.values()) if (ids.length > 1) for (const i of ids) { rec[i].row = null; rec[i].error = rec[i].v[11] = 'DUPLICATE_INPUT'; } const rows = rec.filter(r => r.row).map(r => r.row); const check = await readSheet(sheet.id); if (!same(check.values, sheet.values)) throw Error('Worksheet berubah saat validasi'); await writeErrors(sheet.id, rec.map(r => r.v)); preview = { sheet: sheet.id, version: master.version, rec, rows }; $('stats').hidden = false; $('total').textContent = rec.filter(r => r.row || r.error).length; $('ready').textContent = rows.length; $('invalid').textContent = rec.filter(r => r.error).length; $('version').textContent = 'Master ' + master.version; note(rows.length + ' READY (validasi master saja), ' + rec.filter(r => r.error).length + ' invalid.'); }
+        async function create() { if (!preview || !$('confirm').checked) throw Error('Preview dan konfirmasi diperlukan'); meta = await loadMeta(); if (!meta || meta.stage || (await lock()).locked) throw Error('Workbook terkunci'); const p = preview; const sheet = await readSheet(p.sheet); if (!same(sheet.values, trimRows(p.rec.map(r => r.v.slice())))) throw Error('Snapshot berubah; preview ulang'); if (p.rows.length > health.max_job_rows) throw Error('Jumlah row melebihi limit API'); const x = { workbook_id: meta.workbook_id, stage: 'prepared', sheet: p.sheet, version: p.version, request_key: uuid(), count: p.rec.length, job_id: null }; await saveMeta(x, p.rec); preview = null; await runJob(); }
+        async function findOrCreate(rec) { const q = new URLSearchParams({ workbook_id: meta.workbook_id, request_key: meta.request_key }); let j; try { j = await api('/jobs/by-request-key?' + q); } catch (e) { if (e.status !== 404) throw e; const sheet = await readSheet(meta.sheet); if (!same(sheet.values, trimRows(rec.map(r => r.v.slice())))) throw Error('Snapshot berubah sebelum create job'); j = await api('/jobs', 'POST', { workbook_id: meta.workbook_id, master_version: meta.version, confirm: 'EXECUTE', rows: rec.filter(r => r.row).map(r => r.row) }, meta.request_key); } await saveMeta({ ...meta, job_id: j.job_id, stage: 'running' }); }
+        function progress(j) { $('progress').value = j.total_rows ? 100 * j.completed_rows / j.total_rows : 0; $('counts').textContent = `${j.completed_rows}/${j.total_rows} · ${j.success_rows} sukses · ${j.failed_rows} gagal · ${j.status}`; $('job').textContent = 'Job ID: ' + j.job_id; }
+        async function digest(r) { const sorted = Object.fromEntries(Object.keys(r).sort().map(k => [k, r[k]])); const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(sorted))); return Array.from(new Uint8Array(bytes), x => x.toString(16).padStart(2, '0')).join(''); }
+        async function resultPlan(rec, j) { const data = await api('/jobs/' + meta.job_id + '/results'); const expected = rec.filter(r => r.row); if (data.job_id !== meta.job_id || data.results.length !== expected.length || j.total_rows !== expected.length) throw Error('Result count mismatch'); const map = new Map(data.results.map(r => [r.row_id, r])); if (map.size !== expected.length) throw Error('Duplicate result ID'); let success = 0, failed = 0; const plan = []; for (const r of rec) { const v = [...r.v]; let remove = false; if (r.row) { const s = map.get(r.row.row_id); if (!s || s.sheet_row !== r.row.sheet_row || !s.input_data || Object.keys(r.row).some(k => r.row[k] !== s.input_data[k]) || await digest(s.input_data) !== s.input_digest) throw Error('Result snapshot/digest mismatch: ' + r.row.sheet_row); if (s.status === 'success' && s.target_id != null) { remove = true; success++; } else if (['failed', 'skipped', 'stale'].includes(s.status) && s.target_id == null) { v[11] = String(s.error_message || s.status.toUpperCase()); if (/^[=+@-]/.test(v[11])) v[11] = 'ERROR: ' + v[11]; failed++; } else throw Error('Unexpected row status: ' + s.status); } plan.push({ v, remove }); } if (success !== j.success_rows || failed !== j.failed_rows) throw Error('Result counter mismatch'); return plan; }
+        function expectedRows(plan, groups, done) { const gone = new Set(); for (const g of groups.slice(0, done)) for (let i = g.start; i <= g.end; i++)gone.add(i); return trimRows(plan.filter((_, i) => !gone.has(i)).map(r => r.v.slice())); }
+        function deletionGroups(plan) { const g = []; for (let i = plan.length - 1; i >= 0;) { if (!plan[i].remove) { i--; continue; } const end = i; while (i >= 0 && plan[i].remove) i--; g.push({ start: i + 1, end }); } return g; }
+        async function syncJob(rec, j) {
+            const plan = await resultPlan(rec, j), groups = deletionGroups(plan); if (!['writing', 'deleting', 'ack'].includes(meta.stage)) { const current = await readSheet(meta.sheet); if (!same(current.values, trimRows(rec.map(r => r.v.slice())))) throw Error('Worksheet berubah setelah execute; sync ditahan.'); await saveMeta({ ...meta, stage: 'writing', next: 0 }); }
+            if (meta.stage === 'writing') { const current = await readSheet(meta.sheet), original = trimRows(rec.map(r => r.v.slice())); if (current.values.length !== original.length || current.values.some((v, i) => !same(v.slice(0, 11), original[i].slice(0, 11)) || ![original[i][11], plan[i].v[11]].includes(v[11]))) throw Error('Snapshot berubah saat write-back; sync ditahan'); await writeErrors(meta.sheet, plan.map(r => r.v)); const after = await readSheet(meta.sheet); if (!same(after.values, expectedRows(plan, groups, 0))) throw Error('Write-back verification failed'); await saveMeta({ ...meta, stage: 'deleting', next: 0 }); }
+            if (meta.stage === 'deleting') { for (let n = meta.next; n < groups.length; n++) { const before = expectedRows(plan, groups, n), after = expectedRows(plan, groups, n + 1), current = await readSheet(meta.sheet); if (same(current.values, before)) { const g = groups[n]; await Excel.run(async c => { const s = c.workbook.worksheets.getItem(meta.sheet); s.getRangeByIndexes(g.start + 1, 0, g.end - g.start + 1, 12).delete(Excel.DeleteShiftDirection.up); await c.sync(); }); if (!same((await readSheet(meta.sheet)).values, after)) throw Error('Delete verification failed; jangan ACK'); } else if (!same(current.values, after)) throw Error('Snapshot berbeda saat recovery delete; jangan ACK'); await saveMeta({ ...meta, next: n + 1 }); note('Excel sync: ' + (n + 1) + '/' + groups.length + ' blok SUCCESS dihapus'); } await saveMeta({ ...meta, stage: 'ack' }); }
+            if (!same((await readSheet(meta.sheet)).values, expectedRows(plan, groups, groups.length))) throw Error('Final snapshot mismatch; jangan ACK'); const ack = await api('/jobs/' + meta.job_id + '/sync-ack', 'POST', { confirmed: true }); if (ack.sync_status !== 'synced') throw Error('Sync ACK gagal'); const l = await lock(); if (l.locked) throw Error('Workbook masih locked; periksa job sebelum clear metadata'); await saveMeta({ workbook_id: meta.workbook_id, stage: null }); $('confirm').checked = false; preview = null; note('SELESAI: ' + j.success_rows + ' sukses dihapus, ' + j.failed_rows + ' gagal dipertahankan. Workbook unlocked.');
+        }
+        async function runJob() { const rec = await records(); if (!meta.job_id) await findOrCreate(rec); const base = '/jobs/' + meta.job_id; let j = await api(base); progress(j); if (j.status !== 'completed') { if (meta.stage !== 'running') throw Error('Invalid recovery stage'); const current = await readSheet(meta.sheet); if (!same(current.values, trimRows(rec.map(r => r.v.slice())))) throw Error('Worksheet berubah; execution ditahan. Pulihkan snapshot sebelum resume.'); } while (['queued', 'running'].includes(j.status)) { const last = j.completed_rows; j = await api(base + '/execute-batch', 'POST', { expected_completed_rows: last }); progress(j); if (j.status !== 'completed' && j.completed_rows <= last) throw Error('Batch tidak maju; gunakan Resume untuk cek status server'); } if (j.status !== 'completed') throw Error('Job tidak executable: ' + j.status); await syncJob(rec, j); }
+        async function resume() { meta = await loadMeta(); if (!meta) throw Error('Workbook belum diprovision'); if (!meta.stage) { const l = await lock(); if (l.locked) throw Error('Job locked tanpa snapshot lokal: ' + l.job_id + '. Hubungi admin; jangan ACK manual.'); note('Tidak ada job pending.'); return; } await runJob(); }
+        async function provision() { if (await loadMeta()) throw Error('Workbook sudah diprovision'); const id = $('wid').value.trim(); if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) throw Error('UUID workbook invalid'); const l = await api('/workbooks/' + encodeURIComponent(id) + '/lock'); if (l.locked) throw Error('Workbook ID sedang locked'); await saveMeta({ workbook_id: id, stage: null }); $('setup').hidden = true; note('Workbook ID tersimpan.'); }
+        $('preview').onclick = () => action(validate); $('execute').onclick = () => action(create); $('resume').onclick = () => action(resume); $('provision').onclick = () => action(provision); $('confirm').onchange = controls;
+        async function init(info) { office = info?.host === Office.HostType.Excel; if (!office) { $('connection').textContent = 'Standalone browser · Excel diperlukan untuk execute'; await action(async () => { const m = await getMaster(); $('version').textContent = 'Master ' + m.version; note('Master berhasil dimuat: ' + Object.entries(m.maps).map(([k, v]) => k + ' ' + v.size).join(', ')); }); return; } await action(async () => { if (!Office.context.requirements.isSetSupported('ExcelApi', '1.4')) throw Error('ExcelApi 1.4 atau lebih baru diperlukan'); meta = await loadMeta(); $('setup').hidden = !!meta; health = await api('/health'); if (health.job_type !== 'INACTIVE_SHIPPER_EPM' || health.status !== 'ok') { health = null; throw Error('API bukan Shipper EPM'); } $('connection').textContent = health.environment + ' · batch ' + health.batch_size + ' · API connected'; if (meta) { const l = await lock(); note(meta.stage || l.locked ? 'Job/recovery tersedia. Gunakan Resume.' : 'Siap untuk preview.'); } else note('Admin: provision workbook ID terlebih dahulu.'); }); }
+        if (window.Office) Office.onReady(init); else note('Office.js tidak dapat dimuat', true);
+    </script>
+</body>
+
+</html>
