@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
+ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
+ xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
+ xsi:type="TaskPaneApp">
+  <Id>95f3e510-b910-42af-b783-d804a89f1b6c</Id>
+  <Version>1.0.1.0</Version>
+  <ProviderName>Mostrans</ProviderName>
+  <DefaultLocale>id-ID</DefaultLocale>
+  <DisplayName DefaultValue="Mostrans Price Tools"/>
+  <Description DefaultValue="Validasi dan inaktivasi harga transporter melalui sistem Mostrans."/>
+  <IconUrl DefaultValue="https://mostrans.co.id/macro-excel/assets/icon32.png"/>
+  <HighResolutionIconUrl DefaultValue="https://mostrans.co.id/macro-excel/assets/icon80.png"/>
+  <SupportUrl DefaultValue="https://mostrans.co.id/macro-excel/"/>
+  <AppDomains><AppDomain>https://mostrans.co.id</AppDomain></AppDomains>
+  <Hosts><Host Name="Workbook"/></Hosts>
+  <DefaultSettings><SourceLocation DefaultValue="https://mostrans.co.id/macro-excel/"/></DefaultSettings>
+  <Permissions>ReadWriteDocument</Permissions>
+  <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
+    <Hosts><Host xsi:type="Workbook">
+      <DesktopFormFactor>
+        <GetStarted><Title resid="Res.GetStarted.Title"/><Description resid="Res.GetStarted.Description"/><LearnMoreUrl resid="Res.Taskpane.Url"/></GetStarted>
+        <ExtensionPoint xsi:type="PrimaryCommandSurface">
+          <OfficeTab id="TabHome">
+            <Group id="Mostrans.Group">
+              <Label resid="Res.Group.Label"/>
+              <Icon><bt:Image size="16" resid="Res.Icon16"/><bt:Image size="32" resid="Res.Icon32"/><bt:Image size="80" resid="Res.Icon80"/></Icon>
+              <Control xsi:type="Button" id="Mostrans.OpenTaskpane">
+                <Label resid="Res.Button.Label"/>
+                <Supertip><Title resid="Res.Button.Label"/><Description resid="Res.Button.Description"/></Supertip>
+                <Icon><bt:Image size="16" resid="Res.Icon16"/><bt:Image size="32" resid="Res.Icon32"/><bt:Image size="80" resid="Res.Icon80"/></Icon>
+                <Action xsi:type="ShowTaskpane"><TaskpaneId>MostransTaskpane</TaskpaneId><SourceLocation resid="Res.Taskpane.Url"/></Action>
+              </Control>
+            </Group>
+          </OfficeTab>
+        </ExtensionPoint>
+      </DesktopFormFactor>
+    </Host></Hosts>
+    <Resources>
+      <bt:Images><bt:Image id="Res.Icon16" DefaultValue="https://mostrans.co.id/macro-excel/assets/icon16.png"/>
+        <bt:Image id="Res.Icon32" DefaultValue="https://mostrans.co.id/macro-excel/assets/icon32.png"/>
+        <bt:Image id="Res.Icon80" DefaultValue="https://mostrans.co.id/macro-excel/assets/icon80.png"/></bt:Images>
+      <bt:Urls><bt:Url id="Res.Taskpane.Url" DefaultValue="https://mostrans.co.id/macro-excel/"/></bt:Urls>
+      <bt:ShortStrings><bt:String id="Res.Group.Label" DefaultValue="Mostrans Tools"/>
+        <bt:String id="Res.Button.Label" DefaultValue="Mostrans Price Tools"/>
+        <bt:String id="Res.GetStarted.Title" DefaultValue="Mostrans Price Tools"/></bt:ShortStrings>
+      <bt:LongStrings><bt:String id="Res.Button.Description" DefaultValue="Validate Preview dan Execute harga transporter."/>
+        <bt:String id="Res.GetStarted.Description" DefaultValue="Buka Mostrans Price Tools untuk validasi dan eksekusi."/></bt:LongStrings>
+    </Resources>
+  </VersionOverrides>
+</OfficeApp>

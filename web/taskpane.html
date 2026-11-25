@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><meta name="csrf-token" content=""><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mostrans Price Tools — Production API</title>
+<script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+<style>
+:root{font-family:Segoe UI,Inter,Arial,sans-serif;color:#18342d;background:#f4f7f6}
+*{box-sizing:border-box}body{margin:0;font-size:13px;line-height:1.45}button,input{font:inherit}button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid #84cfb1;outline-offset:2px}
+.brand{padding:19px 17px 15px;background:#fff;border-bottom:1px solid #e5ece9;position:sticky;top:0;z-index:4}.brand-top{display:flex;justify-content:space-between;gap:12px;align-items:center}.brand-id{display:flex;align-items:center;gap:10px}.logo{width:35px;height:35px;background:#006b44;color:white;font-weight:800;font-size:19px;display:grid;place-items:center;border-radius:11px}.brand strong{font-size:15px;line-height:1.2}.subtitle{color:#6c8078;font-size:11px;margin-top:3px}.env{font-weight:700;font-size:10px;color:#10684b;background:#e4f6ed;padding:5px 9px;border-radius:999px}.live{display:flex;align-items:center;gap:7px;margin-top:15px;font-size:11px;color:#65766e}.dot{width:7px;height:7px;border-radius:50%;background:#abbcb4}.dot--success{background:#07804e}.dot--error{background:#ce5547}.pulse{height:3px;background:linear-gradient(90deg,#c3e9d9,#0c8a55,#c3e9d9);background-size:200% auto;animation:pulse 1.7s linear infinite}@keyframes pulse{to{background-position:200% center}}[hidden]{display:none!important}
+main{padding:14px 13px 28px;max-width:600px;margin:0 auto}.card{background:#fff;border:1px solid #e0e9e5;border-radius:14px;padding:17px 15px;margin:0 0 12px;box-shadow:0 2px 7px rgba(23,55,40,.025)}.step-header{display:flex;align-items:center;gap:10px;margin-bottom:8px}.step-number{display:grid;place-items:center;width:29px;height:29px;background:#e9f4ef;border-radius:50%;color:#096b48;font-size:12px;font-weight:800}.step-heading{font-size:15px;font-weight:750;margin:0}.muted{color:#6a7e76;font-size:12px;line-height:1.65;margin:7px 0 12px}.tiny{font-size:11px}.btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;border:0;border-radius:9px;padding:12px 10px;min-height:43px;font-weight:700;cursor:pointer;transition:background .15s,transform .15s}.btn:hover:not(:disabled){background:#045e3d}.btn:active:not(:disabled){transform:translateY(1px)}.btn-primary{background:#086a46;color:white}.btn:disabled{background:#d6e3dc;color:#759488;cursor:not-allowed}.btn-secondary{background:#eaf4ee;color:#126745}.btn-secondary:hover:not(:disabled){background:#dcefe4}.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:13px 0 9px}.stat{border:1px solid #e7eeea;background:#f7faf8;border-radius:10px;padding:10px 4px;text-align:center}.stat b{display:block;font-size:22px;line-height:1.2;font-weight:750;color:#253e32}.stat b.good{color:#087548}.stat b.bad{color:#ba4646}.stat span{font-size:10px;color:#77887f}.issue-heading{font-size:11px;color:#a04336;font-weight:750;margin:10px 0 7px}.issue-list{max-height:180px;overflow:auto}.issue{border:1px solid #f5e3dd;background:#fffaf7;border-radius:8px;margin:7px 0;padding:9px 10px;display:flex;flex-direction:column;gap:2px;color:#7d4d41;font-size:11px;overflow-wrap:anywhere}.issue strong{font-size:11px;color:#a04a39}.all-ready{color:#067448;font-size:12px;padding:9px;background:#f0faf3;border-radius:8px}.hint{font-size:11px;color:#6c8078;margin:8px 0 0}.caution{display:flex;gap:8px;padding:10px;border-radius:9px;background:#fff7e8;border:1px solid #ffebc5;color:#7d5b27;font-size:11px;line-height:1.6;margin:12px 0}.caution svg{flex:none;margin-top:2px}.job-panel{margin-top:14px}.progress-label{display:flex;justify-content:space-between;align-items:center;color:#54685d;font-size:11px;margin-bottom:6px}progress{width:100%;height:9px;border:0;border-radius:20px;overflow:hidden;accent-color:#098451}progress::-webkit-progress-bar{background:#e5eeea;border-radius:20px}progress::-webkit-progress-value{background:#0a8654;border-radius:20px}#counts{font-size:11px;color:#526d5e;margin-top:8px}.feedback{margin-top:12px;color:#52675e;background:#f4f8f5;border-radius:8px;padding:10px;font-size:11px;overflow-wrap:anywhere}.feedback--error{color:#a72e2e;background:#fff0ee}.feedback--success{color:#0c6a40;background:#eff9f1}.done{padding:10px;background:#eef9f1;border:1px solid #d3eedc;border-radius:8px;color:#086f48;font-size:12px;margin-top:10px}.accordion{margin:0 0 12px;border-radius:12px;background:#fff;border:1px solid #e0e9e5;overflow:hidden}.identity{margin-bottom:12px;padding:10px 13px;background:#eef6f2;color:#285844;border-radius:9px;font-size:12px}.lock-notice{margin-bottom:12px;padding:12px;background:#fff1e2;border:1px solid #f4d1a0;border-radius:9px;color:#79501d;font-size:12px}.accordion>summary{list-style:none;cursor:pointer;padding:13px 15px;display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:700;color:#3f6252}.accordion>summary::-webkit-details-marker{display:none}.accordion>summary:after{content:'⌄';font-size:19px;color:#688b79}.accordion[open]>summary:after{content:'⌃'}.accordion-body{padding:0 15px 14px}.config-note{margin-top:1px;color:#73867d;font-size:11px;line-height:1.55}label{display:block;margin:12px 0 5px;font-size:11px;font-weight:700;color:#385747}input{width:100%;border-radius:8px;border:1px solid #d2e0d8;background:#fbfdfc;padding:10px;font-size:12px;color:#274739}#connection{margin-top:9px;color:#8d6750;font-size:11px}.connected{color:#07844c!important}.recovery-notice{padding:9px;background:#fff6e7;color:#8a6127;border-radius:8px;font-size:11px;margin:3px 0 12px}#job-ref{overflow-wrap:anywhere}#log{max-height:200px;white-space:pre-wrap;overflow-wrap:anywhere;background:#f3f6f5;padding:9px;border-radius:8px;color:#476659;font-size:10px}
+</style></head><body>
+<header class="brand"><div class="brand-top"><div class="brand-id"><div class="logo" aria-hidden="true">M</div><div><strong>Mostrans Price Tools</strong><div class="subtitle">Inactive Harga Transporter</div></div></div><span class="env">MOSTRANS</span></div>
+<div class="live"><span id="activity-dot" class="dot"></span><span id="activity-text">Menghubungkan Excel…</span></div><div id="busy-bar" class="pulse" hidden></div></header>
+<main>
+<div id="identity" class="identity" role="status">Memeriksa koneksi Backend Flask API…</div>
+<div id="lock-notice" class="lock-notice" hidden role="status"></div>
+<section class="card" aria-labelledby="step1"><div class="step-header"><span class="step-number">01</span><h2 id="step1" class="step-heading">Validate &amp; Preview</h2></div><p class="muted">Validasi data Excel dan temukan harga aktif yang sesuai, tanpa mengubah PostgreSQL.</p><button class="btn btn-primary" id="preview" disabled>Validate &amp; Preview</button><div id="preview-summary" hidden><div class="stats"><div class="stat"><b id="total">–</b><span>Total baris</span></div><div class="stat"><b id="ready" class="good">–</b><span>READY</span></div><div class="stat"><b id="blocked" class="bad">–</b><span>Issue</span></div></div><div id="preview-details" class="issue-list" aria-live="polite"></div><p id="preview-hint" class="hint"></p></div></section>
+<section class="card" aria-labelledby="step2"><div class="step-header"><span class="step-number">02</span><h2 id="step2" class="step-heading">Confirm &amp; Execute</h2></div><p class="muted">Jalankan inaktivasi baris READY, pantau proses, dan hapus baris sukses dari Excel secara otomatis.</p><div class="caution"><span aria-hidden="true">⚠</span><span>Inaktivasi harga bersifat permanen setelah database commit. Periksa hasil Preview sebelum melanjutkan.</span></div><button class="btn btn-primary" id="execute" disabled>Confirm &amp; Execute</button><div id="job-progress" class="job-panel" hidden><div class="progress-label"><span>Progress eksekusi</span><strong id="progress-label">0%</strong></div><progress id="progress" max="100" value="0"></progress><p id="counts">Belum ada job.</p></div><div id="completion" class="done" hidden></div><p id="status" class="feedback" role="status" aria-live="polite">Siap untuk preview.</p></section>
+<details id="recovery-panel" class="accordion"><summary>↻ Recovery &amp; bantuan teknis</summary><div class="accordion-body"><p id="recovery-notice" class="recovery-notice" hidden>Ada job yang belum selesai disinkronkan. Gunakan pemulihan sebelum memproses data baru.</p><p class="config-note">Jika Excel tertutup saat Execute, lanjutkan job yang tersimpan tanpa mengulangi UPDATE.</p><button id="recover" class="btn btn-secondary" disabled>Resume Job &amp; Excel Sync</button><p class="tiny muted" id="job-ref">Job ID: —</p><details><summary>Technical log</summary><pre id="log"></pre></details></div></details>
+<p class="tiny muted" style="text-align:center">Mostrans • Harga Transporter • Backend memvalidasi akses setiap transaksi</p>
+</main><script>
+'use strict';
+const FIELDS=['nomor_sk','transporter','asal_kota','tujuan_kota','jenis_kendaraan','tipe_muatan','tipe_harga','start_date','price','tkbm','valid_date'];
+const HEADERS=['no SK','Transporter','Asal Kota','Tujuan Kota','Jenis Kendaraan','Tipe Muatan','Tipe Harga','Start Date','Price','TKBM','Valid Date'];
+const META='_MOSTRANS_META';
+const el=id=>document.getElementById(id);
+let state={office:false, authorized:false, locked:false, lockOwner:null, csrf:null, busy:false, preview:null, rows:null, workbookId:null, sheetName:null, jobId:null, requestKey:null};
+function note(text,bad=false){
+  const status=el('status'); status.textContent=text;
+  status.className=bad?'feedback feedback--error':(/SELESAI:|tersinkronisasi|READY,/.test(text)?'feedback feedback--success':'feedback');
+  el('activity-text').textContent=bad?'Perlu perhatian':(/SELESAI:|tersinkronisasi/.test(text)?'Selesai':state.busy?'Sedang diproses':'Siap digunakan');
+  el('activity-dot').className=bad?'dot dot--error':(/SELESAI:|tersinkronisasi/.test(text)?'dot dot--success':'dot');
+  log(text);
+}
+function log(msg){const s=`${new Date().toLocaleTimeString('id-ID')} ${msg}`;el('log').textContent=s+'\n'+el('log').textContent.slice(0,5000);}
+function busy(value){
+  state.busy=value;
+  el('preview').disabled=value||!state.office||!state.authorized;
+  el('execute').disabled=value||!state.authorized||state.locked||!state.preview||Number(state.preview.ready_rows)<1||Boolean(state.jobId);
+  el('recover').disabled=value||!state.office||!state.authorized;
+  el('preview').textContent=value&&!state.jobId?'Memproses…':'Validate & Preview';
+  el('execute').textContent=value&&state.jobId?'Memproses job…':'Confirm & Execute';
+  el('activity-text').textContent=value?'Sedang diproses':(state.jobId?'Job tersedia':'Siap digunakan');
+  el('busy-bar').hidden=!value;
+}
+function numeric(v,t){if(typeof v==='number')return v;const s=String(t??v??'').trim();if(!s)return null;let q=s.replace(/\s/g,'');if(/^\d{1,3}(,\d{3})+$/.test(q))q=q.replace(/,/g,'');else if(/^\d{1,3}(\.\d{3})+$/.test(q))q=q.replace(/\./g,'');return /^\d+(\.\d+)?$/.test(q)?Number(q):null;}
+function isoDate(v,t){if(typeof v==='number'&&v>1&&v<100000)return new Date(Math.round((v-25569)*86400000)).toISOString().slice(0,10);const s=String(t??v??'').trim();if(/^\d{4}-\d{2}-\d{2}$/.test(s))return s;const m=s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);return m?`${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`:s;}
+function normalize(values,text,rowId,rowNo){const row={row_id:rowId,sheet_row:rowNo};for(let c=0;c<11;c++){const v=values[c],t=String(text[c]??'').trim();row[FIELDS[c]]=c===7?isoDate(v,t):c===8||c===9?numeric(v,t):c===10?(t||null):t;}return row;}
+function comparable(r){const o={};for(const key of FIELDS)o[key]=r[key]??null;return o;}
+function eqInput(a,b){return JSON.stringify(comparable(a))===JSON.stringify(comparable(b));}
+// Production: same-origin authenticated BFF. No API token or URL in the user interface.
+// The BFF MUST verify a real user identity and permissions server-side.
+// Same-origin cookies alone are insufficient without CSRF protection and iframe cookie compatibility.
+const API_BASE='https://api.mostrans.co.id/run-service-inactive';
+function apiUrl(path){ return API_BASE+path; }
+async function api(method,path,payload=null,headers={}){
+  const ctl=new AbortController(); const timeout=setTimeout(()=>ctl.abort(),35000);
+  try {
+    // Session check is deferred. Never embed API bearer tokens in publicly hosted HTML.
+    // Server must apply its own authentication, authorization and CSRF protection where applicable.
+    const response=await fetch(apiUrl(path),{
+      method,signal:ctl.signal,cache:'no-store',credentials:'include',
+      headers:{'Accept':'application/json',...(payload?{'Content-Type':'application/json'}:{}),...headers},
+      ...(payload?{body:JSON.stringify(payload)}:{})
+    });
+    const contentType=response.headers.get('content-type')||'';
+    if(!contentType.includes('application/json'))throw Error(`HTTP ${response.status}: gateway mengembalikan bukan JSON`);
+    const data=await response.json();
+    if(response.status===401)throw Error('API menolak request (401). Backend masih memerlukan autentikasi; jangan masukkan token ke HTML publik.');
+    if(response.status===403)throw Error(data.error||'Akun tidak memiliki akses untuk aksi ini.');
+    if(!response.ok)throw Error(`HTTP ${response.status}: ${data.error||data.message||'Request gagal'}`);
+    return data;
+  } finally{clearTimeout(timeout);}
+}
+async function checkBackendReady(){
+  // Health is connectivity-only, NOT user authentication or authorization.
+  const health=await api('GET','/health');
+  if(health.status!=='ok')throw Error('Health check Flask API tidak OK');
+  state.authorized=true; // UI is initialized; server still authorizes each protected endpoint.
+  el('identity').textContent='Backend Flask API terhubung · Akses transaksi diverifikasi server';
+  busy(false);
+}
+async function checkLock(){
+  if(!state.office||!state.authorized||state.busy)return;
+  let meta;try{meta=await workbookMeta();}catch{return;}
+  if(!meta?.workbook_id)return;
+  try{
+    // Contract GET /workbooks/:id/lock -> {locked, owner_name?, job_id?, status?}
+    const result=await api('GET',`/api/v1/transporter-prices/workbooks/${encodeURIComponent(meta.workbook_id)}/lock`);
+    state.locked=Boolean(result.locked);
+    state.lockOwner=result.owner_name||null;
+    const notice=el('lock-notice');notice.hidden=!state.locked;
+    if(state.locked)notice.textContent=`Workbook sedang diproses${result.owner_name?' oleh '+result.owner_name:''}. Execute baru dapat dilakukan setelah job dan sinkronisasi selesai.`;
+    busy(false);
+  }catch(err){
+    // Fail closed for Execute when lock API unavailable; Preview remains usable.
+    state.locked=true;el('lock-notice').hidden=false;
+    el('lock-notice').textContent='Status lock belum dapat diverifikasi. Execute dinonaktifkan untuk keamanan.';
+    log('Lock unavailable: '+err.message);busy(false);
+  }
+}
+function uuid(){return crypto.randomUUID?crypto.randomUUID():'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const n=Math.floor(Math.random()*16);return(c==='x'?n:(n&3|8)).toString(16)});}
+function sheetNameOK(n){return n&&n!==META;}
+async function workbookMeta(){return Excel.run(async ctx=>{const s=ctx.workbook.worksheets.getItemOrNullObject(META);s.load('isNullObject');await ctx.sync();if(s.isNullObject)return null;const r=s.getRange('A1:B6');r.load('values');await ctx.sync();const m=Object.fromEntries(r.values.filter(x=>String(x[0]||'').trim()).map(x=>[String(x[0]),String(x[1]||'')]));return m;});}
+async function saveMeta(entries){await Excel.run(async ctx=>{let s=ctx.workbook.worksheets.getItemOrNullObject(META);s.load('isNullObject');await ctx.sync();if(s.isNullObject)s=ctx.workbook.worksheets.add(META);const a=['workbook_id','sheet_name','job_id','request_key','stage','version'];for(let i=0;i<a.length;i++)if(entries[a[i]]!==undefined)s.getRange(`A${i+1}:B${i+1}`).values=[[a[i],String(entries[a[i]])]];s.visibility=Excel.SheetVisibility.hidden;await ctx.sync();});}
+async function saveSnapshots(rows){
+  await Excel.run(async ctx=>{
+    const sh=ctx.workbook.worksheets.getItem(META);
+    sh.getRange('A9:B1008').clear(Excel.ClearApplyTo.contents);
+    for(let offset=0;offset<rows.length;offset+=100){
+      const block=rows.slice(offset,offset+100).map(r=>[r.row_id,JSON.stringify(r)]);
+      sh.getRange(`A${9+offset}:B${8+offset+block.length}`).values=block;
+    }
+    await ctx.sync();
+  });
+}
+async function loadSnapshots(){
+  return Excel.run(async ctx=>{
+    const sh=ctx.workbook.worksheets.getItemOrNullObject(META);
+    sh.load('isNullObject'); await ctx.sync();
+    if(sh.isNullObject)return [];
+    const r=sh.getRange('A9:B1008');r.load('values');await ctx.sync();
+    const rows=[];
+    for(const [id,json] of r.values){if(!id||!json)continue;
+      const value=JSON.parse(String(json));
+      if(value.row_id!==String(id))throw Error('Snapshot metadata tidak konsisten');
+      rows.push(value);
+    }
+    return rows;
+  });
+}
+async function readWorkbook(createIds=false, chosenSheet=null, allowEmpty=false){return Excel.run(async ctx=>{const sheet=chosenSheet?ctx.workbook.worksheets.getItem(chosenSheet):ctx.workbook.worksheets.getActiveWorksheet();sheet.load('name');const used=sheet.getUsedRangeOrNullObject();used.load(['isNullObject','rowIndex','rowCount']);await ctx.sync();if(!sheetNameOK(sheet.name))throw Error('Pilih worksheet harga, bukan sheet metadata');if(used.isNullObject)throw Error('Worksheet kosong');const last=used.rowIndex+used.rowCount;if(last>1001)throw Error('Maksimal 1.000 row; ada data/format hingga row '+last);if(last<2&&allowEmpty)return {rows:[],sheetName:sheet.name};if(last<2)throw Error('Tidak ada row data');const r=sheet.getRange(`A1:AH${last}`);r.load(['values','text']);await ctx.sync();const h=r.text[0].slice(0,11).map(v=>String(v??'').trim().toLowerCase());if(HEADERS.some((x,i)=>x.toLowerCase()!==h[i]))throw Error('Header A–K tidak sesuai template: '+HEADERS.join(', '));const ids=new Set();const newIds=[];const rows=[];let changed=false;for(let i=1;i<r.values.length;i++){const val=r.values[i],tx=r.text[i];if(!tx.slice(0,11).some(v=>String(v??'').trim())){newIds.push([val[33]??'']);continue;}let id=String(tx[33]??'').trim();if(createIds&&(!id||/^.+:row-\d+$/.test(id))){id=uuid();changed=true;}if(!id)throw Error(`Row ${i+1} tidak punya row_id di AH; lakukan Preview dulu`);if(ids.has(id))throw Error(`Duplicate Row ID AH: ${id}`);ids.add(id);newIds.push([id]);rows.push(normalize(val.slice(0,11),tx.slice(0,11),id,i+1));}
+if(!rows.length&&!allowEmpty)throw Error('Tidak ada data input A–K');if(createIds&&changed){sheet.getRange(`AH2:AH${last}`).values=newIds;await ctx.sync();}return {rows,sheetName:sheet.name};});}
+async function doPreview(){if(!state.authorized){note('Login Mostrans diperlukan.',true);return;}busy(true);try{state.preview=null;state.rows=null;let meta=await workbookMeta();if(meta?.job_id||meta?.request_key){state.jobId=meta.job_id||null;state.requestKey=meta.request_key;el('job-ref').textContent=`Job ID: ${state.jobId}`;throw Error('Ada job sebelumnya pada workbook. Gunakan Resume Job & Excel Sync dulu; jangan preview job baru.');}
+const book=await readWorkbook(true);state.workbookId=meta?.workbook_id||uuid();state.sheetName=book.sheetName;state.rows=book.rows;await saveMeta({workbook_id:state.workbookId,sheet_name:book.sheetName,version:'phase2'});note(`Memvalidasi ${book.rows.length} row terhadap PostgreSQL (SELECT)...`);const p=await api('POST','/api/v1/transporter-prices/preview',{workbook_id:state.workbookId,rows:book.rows});state.preview=p;el('total').textContent=p.total_rows;el('ready').textContent=p.ready_rows;el('blocked').textContent=p.blocked_rows;const issues=(p.results||[]).filter(x=>x.status!=='ready');
+  el('preview-summary').hidden=false;
+  el('preview-details').replaceChildren();
+  if(issues.length){
+    const heading=document.createElement('div');heading.className='issue-heading';heading.textContent=`${issues.length} baris perlu diperiksa`;
+    el('preview-details').appendChild(heading);
+    for(const issue of issues){
+      const found=(state.rows||[]).find(r=>r.row_id===issue.row_id);
+      const div=document.createElement('div');div.className='issue';
+      const strong=document.createElement('strong');strong.textContent=`Baris ${found?.sheet_row??'?'} · ${issue.status.toUpperCase()}`;
+      const message=document.createElement('span');message.textContent=issue.error_message||'Data tidak valid';
+      div.append(strong,message);el('preview-details').appendChild(div);
+    }
+  }else{const ok=document.createElement('div');ok.className='all-ready';ok.textContent='Semua baris lolos validasi.';el('preview-details').appendChild(ok);}
+  el('preview-hint').textContent=Number(p.ready_rows)>0?'Preview selesai. Periksa issue lalu lanjutkan jika sudah sesuai.':'Tidak ada baris READY untuk diproses.';
+  note(`${p.ready_rows} READY, ${p.blocked_rows} non-READY. Review hasil sebelum Execute.`);
+}catch(e){note('Preview gagal: '+e.message,true);}finally{busy(false);}}
+async function findJobByKey(){const q=`?workbook_id=${encodeURIComponent(state.workbookId)}&request_key=${encodeURIComponent(state.requestKey)}`;return api('GET','/api/v1/transporter-prices/jobs/by-request-key'+q);}
+async function doExecute(){if(!state.preview||state.busy)return;if(!state.authorized||state.locked){note('Execute belum diizinkan: periksa autentikasi dan lock workbook.',true);return;}busy(true);try{const meta=await workbookMeta();if(meta?.job_id||meta?.request_key)throw Error('Ada request/job tersimpan. Gunakan Resume dulu');const current=await readWorkbook(false,state.sheetName);if(current.rows.length!==state.rows.length||current.rows.some((r,i)=>r.row_id!==state.rows[i].row_id||r.sheet_row!==state.rows[i].sheet_row||!eqInput(r,state.rows[i])))throw Error('Data Excel berubah setelah Preview. Preview ulang diperlukan.');
+const lock=await api('GET',`/api/v1/transporter-prices/workbooks/${encodeURIComponent(state.workbookId)}/lock`);if(lock.locked)throw Error('Workbook sedang dikunci oleh job lain.');state.requestKey=uuid();await saveSnapshots(state.rows);await saveMeta({request_key:state.requestKey,stage:'submitting'});note('Membuat job di Flask (tidak mengulangi SQL saat retry)...');let response;try{response=await api('POST','/api/v1/transporter-prices/jobs',{workbook_id:state.workbookId,rows:state.rows,preview_proof:state.preview.preview_proof,confirm:'EXECUTE_STAGING'},{'Idempotency-Key':state.requestKey});}catch(err){try{response=await findJobByKey();}catch{throw Error('Status POST tidak pasti. Request key tersimpan; gunakan Resume, jangan execute ulang. '+err.message);}}
+state.jobId=response.job_id;await saveMeta({job_id:state.jobId,stage:'running'});el('job-ref').textContent=`Job ID: ${state.jobId}`;await monitorAndSync();}catch(e){note('Execute: '+e.message,true);}finally{busy(false);}}
+const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+async function monitorAndSync(){if(!state.jobId)throw Error('Belum ada job');let job;for(let i=0;i<120;i++){job=await api('GET',`/api/v1/transporter-prices/jobs/${encodeURIComponent(state.jobId)}`);const pct=job.total_rows?Math.round(100*job.completed_rows/job.total_rows):0;el('progress').value=pct;el('progress-label').textContent=`${pct}%`;el('job-progress').hidden=false;el('counts').textContent=`${job.completed_rows}/${job.total_rows} processed · ${job.success_rows} success · ${job.failed_rows} non-success`;if(job.status==='completed')break;if(job.status==='failed')throw Error('Job gagal: '+(job.last_error||'periksa server'));await sleep(2500);}if(job?.status!=='completed')throw Error('Job belum selesai. Gunakan Resume, jangan Execute lagi.');if(job.sync_status==='synced'){note('Job sudah tersinkronisasi.');await saveMeta({job_id:'',request_key:'',stage:'synced'});state.jobId=null;return;}await syncResults();}
+function canonical(x){if(x===null||typeof x!=='object')return JSON.stringify(x);if(Array.isArray(x))return '['+x.map(canonical).join(',')+']';return '{'+Object.keys(x).sort().map(k=>JSON.stringify(k)+':'+canonical(x[k])).join(',')+'}';}
+async function sha256(x){const bytes=new TextEncoder().encode(canonical(x));const buffer=await crypto.subtle.digest('SHA-256',bytes);return Array.from(new Uint8Array(buffer),b=>b.toString(16).padStart(2,'0')).join('');}
+async function syncResults(){const results=await api('GET',`/api/v1/transporter-prices/jobs/${encodeURIComponent(state.jobId)}/results`);const meta=await workbookMeta();const sheet=meta?.sheet_name||state.sheetName;const current=await readWorkbook(false,sheet);const map=new Map(current.rows.map(r=>[r.row_id,r]));const saved=state.rows||await loadSnapshots();
+// Results must be immutable and bound to exact job's original row digest.
+const statuses=[];const deletions=[];let unsafe=[];for(const result of results.results){const r=map.get(result.row_id);if(!r){if(result.status==='success'&&saved.some(x=>x.row_id===result.row_id)&&await sha256(saved.find(x=>x.row_id===result.row_id))===result.input_digest)continue;unsafe.push(`Row ${result.row_id} hilang, ${result.status}`);continue;}if(saved.length){const original=saved.find(x=>x.row_id===result.row_id);if(!original||await sha256(original)!==result.input_digest||!eqInput(r,original)){unsafe.push(`Row ${result.row_id} berubah atau digest mismatch`);continue;}}else{ // Recovery after re-opening: sheet_row is part of the server's digest; verify with original sheet_row from stored immutable job result is unavailable.
+  // Safety-first: do not delete without saved snapshot. Manual escalation is required.
+  unsafe.push(`Row ${result.row_id}: snapshot asli tidak tersedia setelah browser reload`);continue;
+}
+if(result.status==='success')deletions.push(r);else statuses.push({row:r,status:result.status,error:result.error_message||result.status});}
+if(unsafe.length)throw Error('Cleanup dibatalkan demi keamanan: '+unsafe.slice(0,3).join('; '));
+note(`Menulis hasil ${statuses.length} non-success, kemudian menghapus ${deletions.length} success...`);
+await Excel.run(async ctx=>{const ws=ctx.workbook.worksheets.getItem(sheet);for(const item of statuses){const n=item.row.sheet_row;ws.getRange(`AF${n}:AH${n}`).values=[[item.status.toUpperCase(),item.error,item.row.row_id]];}await ctx.sync();});
+// Delete from bottom to top; retry can detect already deleted row by row_id.
+for(const item of deletions.sort((a,b)=>b.sheet_row-a.sheet_row)){
+ await Excel.run(async ctx=>{const ws=ctx.workbook.worksheets.getItem(sheet);ws.getRange(`${item.sheet_row}:${item.sheet_row}`).delete(Excel.DeleteShiftDirection.up);await ctx.sync();});
+}
+const after=await readWorkbook(false,sheet,true);const remainingIds=new Set(after.rows.map(x=>x.row_id));if(deletions.some(d=>remainingIds.has(d.row_id)))throw Error('Verifikasi penghapusan row success gagal');
+await api('POST',`/api/v1/transporter-prices/jobs/${encodeURIComponent(state.jobId)}/sync-ack`,{confirmed:true});await saveMeta({job_id:'',request_key:'',stage:'synced'});note(`SELESAI: ${deletions.length} success dihapus; ${statuses.length} non-success dipertahankan. Tidak ada UPDATE kedua.`);el('completion').hidden=false;el('completion').textContent=`${deletions.length} baris berhasil diinaktivasi dan dihapus dari Excel. ${statuses.length} baris non-success tetap tersedia.`;state.jobId=null;state.preview=null;state.rows=null;el('job-ref').textContent='Job ID: —';}
+async function recover(){if(!state.authorized){note('Login Mostrans diperlukan untuk recovery.',true);return;}busy(true);try{const meta=await workbookMeta();if(!meta?.workbook_id||!meta?.request_key)throw Error('Tidak ada job/recovery key di workbook');state.workbookId=meta.workbook_id;state.sheetName=meta.sheet_name;state.requestKey=meta.request_key;state.jobId=meta.job_id||null;if(!state.jobId){let existing;try{existing=await findJobByKey();}catch(e){
+  if(String(e.message).startsWith('HTTP 404:')){await saveMeta({request_key:'',job_id:'',stage:'no_job_found'});state.requestKey=null;note('Request belum menghasilkan job di server. Aman untuk Preview ulang.');return;}
+  throw e;
+}state.jobId=existing.job_id;await saveMeta({job_id:state.jobId,stage:'running'});}el('job-ref').textContent=`Job ID: ${state.jobId}`;
+state.rows=await loadSnapshots();if(!state.rows.length)throw Error('Snapshot asli hilang dari workbook. Cleanup otomatis diblokir.');await monitorAndSync();}catch(e){note('Recovery: '+e.message,true);}finally{busy(false);}}
+el('preview').addEventListener('click',doPreview);el('execute').addEventListener('click',doExecute);el('recover').addEventListener('click',recover);
+Office.onReady(async info=>{
+  if(info.host!==Office.HostType.Excel){note('Add-in hanya tersedia di Excel Online.',true);return;}
+  state.office=true;
+  try{await checkBackendReady();
+    const meta=await workbookMeta();
+    if(meta?.job_id||meta?.request_key){
+      el('job-ref').textContent=`Job ID: ${meta.job_id||'pending lookup by request key'}`;
+      el('recovery-panel').open=true;el('recovery-notice').hidden=false;
+      note('Ada job yang belum sinkron. Gunakan Resume Job, bukan Execute ulang.');
+    }
+    await checkLock();
+    setInterval(()=>{if(!state.busy)checkLock().catch(e=>log('Lock: '+e.message));},10000);
+  }catch(e){state.authorized=false;el('identity').textContent='Backend Flask API belum terhubung';note('Koneksi API: '+e.message,true);busy(false);}
+});
+</script></body></html>

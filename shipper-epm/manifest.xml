@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
+ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
+ xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
+ xsi:type="TaskPaneApp">
+  <Id>7342654a-333b-4af0-8ef9-aeb8d55adbd2</Id>
+  <Version>1.0.0.0</Version>
+  <ProviderName>Mostrans</ProviderName>
+  <DefaultLocale>id-ID</DefaultLocale>
+  <DisplayName DefaultValue="Mostrans Price Tools Inactive Harga Shipper EPM"/>
+  <Description DefaultValue="Validasi dan inaktivasi harga Shipper EPM melalui sistem Mostrans."/>
+  <IconUrl DefaultValue="https://mostrans.co.id/macro-excel/assets/icon32.png"/>
+  <HighResolutionIconUrl DefaultValue="https://mostrans.co.id/macro-excel/assets/icon80.png"/>
+  <SupportUrl DefaultValue="https://mostrans.co.id/macro-excel/shipper-epm/index.html"/>
+  <AppDomains><AppDomain>https://mostrans.co.id</AppDomain></AppDomains>
+  <Hosts><Host Name="Workbook"/></Hosts>
+  <Requirements><Sets DefaultMinVersion="1.4"><Set Name="ExcelApi" MinVersion="1.4"/></Sets></Requirements>
+  <DefaultSettings><SourceLocation DefaultValue="https://mostrans.co.id/macro-excel/shipper-epm/index.html"/></DefaultSettings>
+  <Permissions>ReadWriteDocument</Permissions>
+  <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
+    <Hosts><Host xsi:type="Workbook">
+      <DesktopFormFactor>
+        <GetStarted><Title resid="Res.GetStarted.Title"/><Description resid="Res.GetStarted.Description"/><LearnMoreUrl resid="Res.Taskpane.Url"/></GetStarted>
+        <ExtensionPoint xsi:type="PrimaryCommandSurface">
+          <OfficeTab id="TabHome">
+            <Group id="Mostrans.EpmGroup">
+              <Label resid="Res.Group.Label"/>
+              <Icon><bt:Image size="16" resid="Res.Icon16"/><bt:Image size="32" resid="Res.Icon32"/><bt:Image size="80" resid="Res.Icon80"/></Icon>
+              <Control xsi:type="Button" id="Mostrans.OpenEpmTaskpane">
+                <Label resid="Res.Button.Label"/>
+                <Supertip><Title resid="Res.Button.Label"/><Description resid="Res.Button.Description"/></Supertip>
+                <Icon><bt:Image size="16" resid="Res.Icon16"/><bt:Image size="32" resid="Res.Icon32"/><bt:Image size="80" resid="Res.Icon80"/></Icon>
+                <Action xsi:type="ShowTaskpane"><TaskpaneId>MostransEpmTaskpane</TaskpaneId><SourceLocation resid="Res.Taskpane.Url"/></Action>
+              </Control>
+            </Group>
+          </OfficeTab>
+        </ExtensionPoint>
+      </DesktopFormFactor>
+    </Host></Hosts>
+    <Resources>
+      <bt:Images><bt:Image id="Res.Icon16" DefaultValue="https://mostrans.co.id/macro-excel/assets/icon16.png"/>
+        <bt:Image id="Res.Icon32" DefaultValue="https://mostrans.co.id/macro-excel/assets/icon32.png"/>
+        <bt:Image id="Res.Icon80" DefaultValue="https://mostrans.co.id/macro-excel/assets/icon80.png"/></bt:Images>
+      <bt:Urls><bt:Url id="Res.Taskpane.Url" DefaultValue="https://mostrans.co.id/macro-excel/shipper-epm/index.html"/></bt:Urls>
+      <bt:ShortStrings><bt:String id="Res.Group.Label" DefaultValue="Mostrans Tools"/>
+        <bt:String id="Res.Button.Label" DefaultValue="Mostrans Price Tools Inactive Harga Shipper EPM"/>
+        <bt:String id="Res.GetStarted.Title" DefaultValue="Mostrans Price Tools Inactive Harga Shipper EPM"/></bt:ShortStrings>
+      <bt:LongStrings><bt:String id="Res.Button.Description" DefaultValue="Validate Preview dan Execute harga Shipper EPM."/>
+        <bt:String id="Res.GetStarted.Description" DefaultValue="Buka Mostrans Price Tools Inactive Harga Shipper EPM untuk validasi dan eksekusi."/></bt:LongStrings>
+    </Resources>
+  </VersionOverrides>
+</OfficeApp>
