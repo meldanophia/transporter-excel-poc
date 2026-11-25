@@ -5,7 +5,7 @@
  xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
  xsi:type="TaskPaneApp">
   <Id>7342654a-333b-4af0-8ef9-aeb8d55adbd2</Id>
-  <Version>1.0.0.1</Version>
+  <Version>1.0.0.2</Version>
   <ProviderName>Mostrans</ProviderName>
   <DefaultLocale>id-ID</DefaultLocale>
   <DisplayName DefaultValue="Mostrans Price Tools Inactive Harga Shipper EPM"/>
