@@ -202,7 +202,7 @@
         const HEAD = ['no SK', 'Transporter', 'Asal Kota', 'Tujuan Kota', 'Jenis Kendaraan', 'Tipe Muatan', 'Tipe Harga', 'Start Date', 'Price', 'TKBM', 'Valid Date', 'Error Message'];
         const local = ['localhost', '127.0.0.1'].includes(location.hostname);
         // HTTPS localhost requires a reverse proxy for this path; ordinary HTTP is only for standalone dev.
-        const API = local ? (location.protocol === 'https:' ? location.origin + '/run-service-harga-epm' : 'http://localhost:6076/run-service-harga-epm') : 'https://apidev.mostrans.co.id/run-service-harga-epm/run-service-harga-epm';
+        const API = local ? (location.protocol === 'https:' ? location.origin + '/run-service-harga-epm' : 'http://localhost:6076/run-service-harga-epm') : 'https://apidev.mostrans.co.id/run-service-harga-epm';
         const masterURL = new URL('../master-data/', location.href);
         // Single operator, one active taskpane; persistent UUID is a lock key, not authentication.
         let meta = null, preview = null, office = false, busy = false, health = null, identity = null, lockChecked = false;
